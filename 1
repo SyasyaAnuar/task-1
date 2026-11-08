@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Papan Tugasan</title>
+<style>
+:root {
+  --bg: #f2f5f3; --surface: #ffffff; --ink: #18221d; --muted: #5a6a62; --line: #d3ddd8;
+  --accent: #1d6b58; --accent-ink: #ffffff; --accent-soft: #dcefe8;
+  --warn: #8f5500; --warn-soft: #fbeed3; --bad: #a8362b; --bad-soft: #f8e1dd;
+  --f-display: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+  --f-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #101613; --surface: #18201c; --ink: #e7eee9; --muted: #9aaca3; --line: #2b3832;
+    --accent: #5ec4a4; --accent-ink: #0c1a15; --accent-soft: #1d3a31;
+    --warn: #e8b45a; --warn-soft: #3a2d12; --bad: #ff8f80; --bad-soft: #3d1f1b;
+    color-scheme: dark;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.5 var(--f-body); }
+.page { max-width: 720px; margin: 0 auto; padding: 28px 16px 56px; }
+h1, h2 { font-family: var(--f-display); margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(30px, 7vw, 40px); line-height: 1.05; }
+h2 { font-size: 20px; line-height: 1.2; }
+p { margin: 0; }
+.lead { color: var(--muted); margin-top: 10px; max-width: 60ch; }
+.rules { list-style: none; margin: 20px 0 24px; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px 20px; }
+.rules li { font-size: 14px; color: var(--muted); min-width: 0; }
+.rules b { display: block; font: 600 11px/1.4 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 2px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+form { display: grid; gap: 16px; }
+.stack { display: grid; gap: 18px; }
+.row2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.field { display: grid; gap: 6px; min-width: 0; }
+label, .lbl { font-weight: 600; font-size: 14px; }
+.hint { font-size: 13px; color: var(--muted); }
+input[type=text], textarea { width: 100%; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 11px 12px; }
+textarea { min-height: 120px; resize: vertical; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-weight: 500; }
+.check input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; accent-color: var(--accent); }
+.radios { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.btn { appearance: none; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); font: 600 16px/1 var(--f-body); border-radius: 8px; padding: 14px 18px; cursor: pointer; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.cal-head, .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-head span { font: 500 11px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); text-align: center; }
+.cell { position: relative; min-height: 48px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 15px var(--f-mono); padding: 0; cursor: pointer; }
+.cell small { position: absolute; top: 3px; left: 5px; font: 500 9px var(--f-mono); text-transform: uppercase; color: var(--muted); }
+.cell.void { border-color: transparent; background: transparent; cursor: default; }
+.cell.taken, .tbtn.taken { background: repeating-linear-gradient(135deg, var(--line) 0 3px, transparent 3px 8px); color: var(--muted); text-decoration: line-through; cursor: not-allowed; }
+.cell.on, .tbtn.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.cell.on small { color: var(--accent-ink); }
+.times { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
+.tbtn { min-height: 42px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 500 14px var(--f-mono); padding: 0; cursor: pointer; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--line); background: var(--surface); }
+.sw.t { background: repeating-linear-gradient(135deg, var(--line) 0 3px, transparent 3px 6px); }
+.sw.o { background: var(--accent); border-color: var(--accent); }
+.picked { font: 500 14px var(--f-mono); }
+.banner { border-radius: 8px; padding: 12px 14px; font-size: 14px; }
+.banner.good { background: var(--accent-soft); color: var(--accent); }
+.banner.warn { background: var(--warn-soft); color: var(--warn); }
+.banner.bad { background: var(--bad-soft); color: var(--bad); }
+.banner ul { margin: 6px 0 0; padding-left: 18px; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>Papan Tugasan</h1>
+    <p class="lead">Hantar tugasan yang lengkap. Pilih tarikh dan waktu akhir yang masih kosong, atau hantar tanpa tarikh akhir.</p>
+    <ul class="rules">
+      <li><b>Wajib</b>Semua ruangan diisi dan tugasan ditanda lengkap sebelum boleh dihantar.</li>
+      <li><b>Pautan</b>Jika tugasan perlukan pautan, pautan penuh wajib diberi.</li>
+      <li><b>Waktu</b>Satu waktu hanya untuk satu tugasan. Waktu yang sudah diambil tidak boleh dipilih lagi.</li>
+      <li><b>Had waktu akhir</b>Mula 10 pagi. Selasa hingga Sabtu 5 petang, Ahad 2 petang, Isnin 4 petang. Jumaat tiada deadline 12:45 hingga 14:45.</li>
+    </ul>
+  </header>
+
+  <form id="form" novalidate autocomplete="off">
+    <div class="card stack">
+      <div class="row2">
+        <div class="field"><label for="f-name">Nama anda</label><input id="f-name" type="text" maxlength="60"></div>
+        <div class="field"><label for="f-contact">Emel atau nombor WhatsApp</label><input id="f-contact" type="text" maxlength="80" placeholder="Supaya boleh dihubungi jika perlu"></div>
+      </div>
+      <div class="field"><label for="f-title">Tajuk tugasan</label><input id="f-title" type="text" maxlength="100" placeholder="Apa yang perlu dibuat, dalam satu ayat"></div>
+      <div class="field"><label for="f-detail">Arahan lengkap</label><textarea id="f-detail" maxlength="1500" placeholder="Apa yang perlu dibuat, langkah demi langkah, dan apa yang dianggap siap."></textarea><span class="hint">Sekurang-kurangnya 20 aksara.</span></div>
+      <div class="field" role="radiogroup" aria-labelledby="need-lbl">
+        <span class="lbl" id="need-lbl">Adakah tugasan ini perlukan pautan?</span>
+        <div class="radios">
+          <label class="check" for="n-no"><input type="radio" name="need" id="n-no" value="tidak"><span>Tidak perlu</span></label>
+          <label class="check" for="n-yes"><input type="radio" name="need" id="n-yes" value="ya"><span>Ya, ada pautan</span></label>
+        </div>
+      </div>
+      <div class="field" id="ref-wrap" hidden><label for="f-ref">Pautan</label><input id="f-ref" type="text" maxlength="500" inputmode="url" placeholder="https://"><span class="hint">Tampal pautan penuh yang bermula dengan https://.</span></div>
+    </div>
+
+    <div class="card stack">
+      <div><h2>Tarikh dan waktu akhir</h2><p class="hint">Pilih tarikh, kemudian waktu. Atau hantar tanpa tarikh akhir.</p></div>
+      <label class="check" for="f-nodl"><input id="f-nodl" type="checkbox"><span>Tiada tarikh akhir untuk tugasan ini</span></label>
+      <div id="dl-wrap" class="stack">
+        <div id="cal" aria-label="Kalendar tarikh akhir"></div>
+        <div class="legend"><span><i class="sw"></i>Kosong</span><span><i class="sw o"></i>Dipilih</span><span><i class="sw t"></i>Semua waktu penuh</span></div>
+        <div class="field"><span class="lbl" id="time-lbl">Waktu akhir</span><div id="times" class="times" role="group" aria-labelledby="time-lbl"></div><span class="hint" id="time-hint"></span></div>
+      </div>
+      <p class="picked" id="picked">Belum pilih tarikh dan waktu.</p>
+    </div>
+
+    <div class="card stack">
+      <label class="check" for="f-confirm"><input id="f-confirm" type="checkbox"><span>Saya sahkan tugasan ini lengkap: semua arahan, pautan dan maklumat berkaitan sudah diberi.</span></label>
+      <div id="msg" aria-live="polite"></div>
+      <div><button type="submit" class="btn" id="submit">Hantar tugasan</button></div>
+    </div>
+  </form>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var MS = ["Jan","Feb","Mac","Apr","Mei","Jun","Jul","Ogo","Sep","Okt","Nov","Dis"];
+  var DS = ["Ahd","Isn","Sel","Rab","Kha","Jum","Sab"];
+  var S = { taken: {}, picked: null, time: null, noDl: false, busy: false };
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function ymd(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function fromYmd(s) { var p = s.split("-").map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+  function addDays(s, n) { var d = fromYmd(s); d.setDate(d.getDate() + n); return ymd(d); }
+  function longDate(s) { var d = fromYmd(s); return DS[d.getDay()] + ", " + d.getDate() + " " + MS[d.getMonth()] + " " + d.getFullYear(); }
+  function today() { return ymd(new Date()); }
+  function timesFor(dateStr) {
+    var dow = fromYmd(dateStr).getDay();
+    var endMin = dow === 0 ? 14 * 60 : dow === 1 ? 16 * 60 : 17 * 60;
+    var out = [];
+    for (var m = 10 * 60; m <= endMin; m += 30) {
+      if (dow === 5 && m >= 12 * 60 + 45 && m <= 14 * 60 + 45) continue;
+      out.push(pad(Math.floor(m / 60)) + ":" + pad(m % 60));
+    }
+    return out;
+  }
+  function slotId(d, t) { return d + "_" + t.replace(":", ""); }
+  function showMsg(kind, text, list) {
+    var h = $("msg");
+    if (!text) { h.innerHTML = ""; return; }
+    var ul = list && list.length ? "<ul>" + list.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul>" : "";
+    h.innerHTML = '<div class="banner ' + kind + '">' + esc(text) + ul + "</div>";
+  }
+  function needLink() { var r = document.querySelector('input[name="need"]:checked'); return r ? r.value : ""; }
+  function val(id) { return $(id).value.trim(); }
+
+  function renderCalendar() {
+    var first = addDays(today(), 1), last = addDays(today(), 42);
+    if (S.picked && S.time && S.taken[slotId(S.picked, S.time)]) {
+      S.time = null;
+      showMsg("warn", "Waktu yang anda pilih baru sahaja diambil orang lain. Sila pilih waktu lain.");
+    }
+    var cur = fromYmd(first);
+    cur.setDate(cur.getDate() - ((cur.getDay() + 6) % 7));
+    var end = fromYmd(last);
+    end.setDate(end.getDate() + (6 - ((end.getDay() + 6) % 7)));
+    var html = '<div class="cal-head" aria-hidden="true">' + ["Isn","Sel","Rab","Kha","Jum","Sab","Ahd"].map(function (d) { return "<span>" + d + "</span>"; }).join("") + '</div><div class="cal-grid">';
+    while (cur <= end) {
+      var id = ymd(cur);
+      if (id < first || id > last) {
+        html += '<span class="cell void"></span>';
+      } else {
+        var full = timesFor(id).every(function (t) { return S.taken[slotId(id, t)]; }), on = S.picked === id;
+        var label = (cur.getDate() === 1 || id === first) ? "<small>" + MS[cur.getMonth()] + "</small>" : "";
+        html += '<button type="button" class="cell' + (full ? " taken" : "") + (on ? " on" : "") + '" data-date="' + id + '"' + (full ? " disabled" : "") +
+          ' aria-pressed="' + on + '" aria-label="' + esc(longDate(id)) + (full ? ", penuh" : ", kosong") + '">' + label + cur.getDate() + "</button>";
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+    $("cal").innerHTML = html + "</div>";
+    renderTimes();
+  }
+  function renderTimes() {
+    var host = $("times"), hint = $("time-hint");
+    if (S.noDl) { $("dl-wrap").hidden = true; $("picked").textContent = "Tugasan ini tanpa tarikh akhir."; return; }
+    $("dl-wrap").hidden = false;
+    if (!S.picked) { host.innerHTML = ""; hint.textContent = "Pilih tarikh di kalendar dahulu."; $("picked").textContent = "Belum pilih tarikh dan waktu."; return; }
+    var dow = fromYmd(S.picked).getDay();
+    hint.textContent = (dow === 5 ? "Jumaat: tiada deadline dari 12:45 hingga 14:45. " : "") + "Waktu bergaris sudah diambil.";
+    host.innerHTML = timesFor(S.picked).map(function (t) {
+      var taken = !!S.taken[slotId(S.picked, t)], on = S.time === t;
+      return '<button type="button" class="tbtn' + (taken ? " taken" : "") + (on ? " on" : "") + '" data-time="' + t + '"' + (taken ? " disabled" : "") + ' aria-pressed="' + on + '">' + t + "</button>";
+    }).join("");
+    $("picked").textContent = S.time ? "Tarikh akhir: " + longDate(S.picked) + ", " + S.time : "Tarikh dipilih: " + longDate(S.picked) + ". Pilih waktu.";
+  }
+
+  $("cal").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-date]");
+    if (!b || b.disabled) return;
+    var d = b.getAttribute("data-date");
+    if (d !== S.picked) S.time = null;
+    S.picked = d; showMsg("", ""); renderCalendar();
+  });
+  $("times").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-time]");
+    if (!b || b.disabled) return;
+    S.time = b.getAttribute("data-time"); showMsg("", ""); renderTimes();
+  });
+  $("f-nodl").addEventListener("change", function () { S.noDl = $("f-nodl").checked; showMsg("", ""); renderTimes(); });
+  Array.prototype.forEach.call(document.querySelectorAll('input[name="need"]'), function (r) {
+    r.addEventListener("change", function () { $("ref-wrap").hidden = needLink() !== "ya"; });
+  });
+
+  /* Dua mod: dalam web app Google guna google.script.run. Dihoskan di luar Google guna fetch ke API_URL tanpa kuki. */
+  var API_URL = "";
+  var embedded = !!(window.google && google.script && google.script.run);
+  function callTaken(ok, fail) {
+    if (embedded) { google.script.run.withSuccessHandler(ok).withFailureHandler(fail).getTaken(); return; }
+    if (!API_URL) { fail(); return; }
+    fetch(API_URL + "?action=taken", { credentials: "omit" }).then(function (r) { return r.json(); }).then(ok, fail);
+  }
+  function callSubmit(v, ok, fail) {
+    if (embedded) { google.script.run.withSuccessHandler(ok).withFailureHandler(fail).submitTask(v); return; }
+    if (!API_URL) { fail(); return; }
+    fetch(API_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(v), credentials: "omit" })
+      .then(function (r) { return r.json(); }).then(ok, fail);
+  }
+
+  function loadTaken() {
+    callTaken(
+      function (list) { S.taken = {}; (list || []).forEach(function (k) { S.taken[k] = true; }); renderCalendar(); },
+      function () { showMsg("warn", "Belum dapat semak waktu yang penuh. Waktu dipilih akan disemak semula ketika menghantar."); }
+    );
+  }
+
+  function validate(v) {
+    var errs = [];
+    if (v.name.length < 2) errs.push("Isi nama anda.");
+    if (v.contact.length < 5) errs.push("Isi emel atau nombor WhatsApp yang boleh dihubungi.");
+    if (v.title.length < 4) errs.push("Isi tajuk tugasan.");
+    if (v.detail.length < 20) errs.push("Arahan terlalu pendek. Tulis sekurang-kurangnya 20 aksara.");
+    if (!v.need) errs.push("Pilih sama ada tugasan ini perlukan pautan.");
+    else if (v.need === "ya" && !/^https?:\/\/[^\s.]+\.[^\s]+$/i.test(v.ref)) errs.push("Pautan diperlukan. Tampal pautan penuh yang bermula dengan https://.");
+    if (!v.noDl) {
+      if (!v.date) errs.push("Pilih tarikh akhir di kalendar, atau tandakan tiada tarikh akhir.");
+      else if (!v.time) errs.push("Pilih waktu akhir.");
+      else if (S.taken[slotId(v.date, v.time)]) errs.push("Waktu yang dipilih sudah diambil.");
+    }
+    if (!v.confirm) errs.push("Tandakan pengesahan bahawa tugasan ini lengkap.");
+    return errs;
+  }
+
+  $("form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (S.busy) return;
+    var v = { name: val("f-name"), contact: val("f-contact"), title: val("f-title"), detail: val("f-detail"), need: needLink(),
+              ref: needLink() === "ya" ? val("f-ref") : "", noDl: S.noDl, date: S.noDl ? "" : S.picked, time: S.noDl ? "" : S.time, confirm: $("f-confirm").checked };
+    var errs = validate(v);
+    if (errs.length) { showMsg("bad", "Tugasan belum lengkap:", errs); return; }
+    if (!embedded && !API_URL) { showMsg("bad", "Halaman ini belum disambung ke pelayan. Hubungi pemilik."); return; }
+    S.busy = true; $("submit").disabled = true; showMsg("", "");
+    callSubmit(v, function (res) {
+        S.busy = false; $("submit").disabled = false;
+        if (res && res.ok) {
+          ["f-title", "f-detail", "f-ref"].forEach(function (k) { $(k).value = ""; });
+          $("f-confirm").checked = false; $("f-nodl").checked = false; S.noDl = false;
+          Array.prototype.forEach.call(document.querySelectorAll('input[name="need"]'), function (r) { r.checked = false; });
+          $("ref-wrap").hidden = true;
+          showMsg("good", "Tugasan dihantar " + (res.noDl ? "tanpa tarikh akhir" : "dengan tarikh akhir " + longDate(res.date) + ", " + res.time) + ". Terima kasih.");
+          S.picked = null; S.time = null;
+          loadTaken();
+        } else {
+          if (res && res.error === "taken") S.time = null;
+          showMsg(res && res.error === "taken" ? "warn" : "bad", (res && res.msg) || "Tidak dapat menyimpan. Cuba lagi.");
+          loadTaken();
+        }
+    }, function () {
+      S.busy = false; $("submit").disabled = false;
+      showMsg("bad", "Tidak dapat menyimpan. Semak sambungan dan cuba lagi.");
+    });
+  });
+
+  renderCalendar();
+  loadTaken();
+})();
+</script>
+</body>
+</html>
